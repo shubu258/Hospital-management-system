@@ -1,39 +1,41 @@
 export type UserRole = "ADMIN" | "SALES_USER";
 
-export type PatientStatus =
-  | "NEW"
-  | "PATIENT_REPLIED"
-  | "REPORT_RECEIVED"
-  | "TREATMENT_PLAN_SENT"
-  | "IN_DISCUSSION"
-  | "ACTIVE"
-  | "CLOSED";
+// A status key, e.g. "IN_DISCUSSION". Statuses are managed by admins, so the
+// valid keys (and their names and order) come from /api/statuses at runtime.
+export type PatientStatus = string;
 
-export const PATIENT_STATUSES: PatientStatus[] = [
-  "NEW",
-  "PATIENT_REPLIED",
-  "REPORT_RECEIVED",
-  "TREATMENT_PLAN_SENT",
-  "IN_DISCUSSION",
-  "ACTIVE",
-  "CLOSED",
-];
+export const STATUS_COLORS = [
+  "slate",
+  "blue",
+  "sky",
+  "indigo",
+  "violet",
+  "pink",
+  "rose",
+  "amber",
+  "orange",
+  "green",
+  "teal",
+] as const;
 
-export const STATUS_LABELS: Record<PatientStatus, string> = {
-  NEW: "New",
-  PATIENT_REPLIED: "Patient Replied",
-  REPORT_RECEIVED: "Report Received",
-  TREATMENT_PLAN_SENT: "Treatment Plan Sent",
-  IN_DISCUSSION: "In Discussion",
-  ACTIVE: "Active",
-  CLOSED: "Closed",
-};
+export type StatusColor = (typeof STATUS_COLORS)[number];
+
+export interface PatientStatusDef {
+  key: PatientStatus;
+  label: string;
+  color: StatusColor;
+  position: number;
+  // Set once an admin removes the status. Kept so old history still shows
+  // its name; nothing can be moved into it anymore.
+  archived_at: string | null;
+}
 
 export interface Profile {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  removed_at?: string | null;
   created_at: string;
   updated_at: string;
 }

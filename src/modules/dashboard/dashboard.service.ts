@@ -1,36 +1,41 @@
 import { ApiError } from "../../utils/http";
-import { PATIENT_STATUSES } from "../../types/database";
+import { listStatuses } from "../statuses";
 import type { AuthContext } from "../auth";
 import type { PatientStatus } from "../../types/database";
 
-function emptyStatusCounts(): Record<PatientStatus, number> {
-  const counts = {} as Record<PatientStatus, number>;
-  for (const status of PATIENT_STATUSES) {
-    counts[status] = 0;
-  }
-  return counts;
+type StatusCounts = Record<PatientStatus, number>;
+
+// A zero for every status (including removed ones), keyed by status key.
+async function statusCountTemplate(auth: AuthContext): Promise<() => StatusCounts> {
+  const keys = (await listStatuses(auth)).map((s) => s.key);
+  return () => Object.fromEntries(keys.map((key) => [key, 0]));
+}
+
+function increment(counts: StatusCounts, key: PatientStatus): void {
+  counts[key] = (counts[key] ?? 0) + 1;
 }
 
 export async function getAdminDashboard(auth: AuthContext) {
-  const { data: patients, error } = await auth.supabase
-    .from("patients")
-    .select("status, assigned_to, created_by");
+  const [{ data: patients, error }, emptyStatusCounts] = await Promise.all([
+    auth.supabase.from("patients").select("status, assigned_to, created_by"),
+    statusCountTemplate(auth),
+  ]);
 
   if (error) throw new ApiError(400, error.message);
 
   const rows = patients ?? [];
   const statusCounts = emptyStatusCounts();
   const countsByUser = new Map<string | null, number>();
-  const statusCountsByUser = new Map<string | null, Record<PatientStatus, number>>();
+  const statusCountsByUser = new Map<string | null, StatusCounts>();
   const countsByCreator = new Map<string | null, number>();
 
   for (const row of rows) {
-    statusCounts[row.status] += 1;
+    increment(statusCounts, row.status);
     countsByUser.set(row.assigned_to, (countsByUser.get(row.assigned_to) ?? 0) + 1);
     countsByCreator.set(row.created_by, (countsByCreator.get(row.created_by) ?? 0) + 1);
 
     const userStatusCounts = statusCountsByUser.get(row.assigned_to) ?? emptyStatusCounts();
-    userStatusCounts[row.status] += 1;
+    increment(userStatusCounts, row.status);
     statusCountsByUser.set(row.assigned_to, userStatusCounts);
   }
 
@@ -149,17 +154,17 @@ export async function getSalesAnalytics(auth: AuthContext): Promise<SalesAnalyti
 }
 
 export async function getMyDashboard(auth: AuthContext) {
-  const { data: patients, error } = await auth.supabase
-    .from("patients")
-    .select("status")
-    .eq("assigned_to", auth.userId);
+  const [{ data: patients, error }, emptyStatusCounts] = await Promise.all([
+    auth.supabase.from("patients").select("status").eq("assigned_to", auth.userId),
+    statusCountTemplate(auth),
+  ]);
 
   if (error) throw new ApiError(400, error.message);
 
   const rows = patients ?? [];
   const statusCounts = emptyStatusCounts();
   for (const row of rows) {
-    statusCounts[row.status] += 1;
+    increment(statusCounts, row.status);
   }
 
   return {

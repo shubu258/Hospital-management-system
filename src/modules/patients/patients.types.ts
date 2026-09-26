@@ -1,7 +1,5 @@
 import type { PatientStatus } from "../../types/database";
 
-export { PATIENT_STATUSES, isPatientStatus } from "../../types/database";
-
 export interface CreatePatientInput {
   name: string;
   country: string;

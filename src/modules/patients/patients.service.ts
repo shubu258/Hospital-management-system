@@ -1,6 +1,7 @@
 import { ApiError } from "../../utils/http";
 import { escapeLikePattern } from "../../utils/validation";
 import { PATIENT_DOCUMENTS_BUCKET } from "../documents/documents.constants";
+import { assertLiveStatus } from "../statuses";
 import type { AuthContext } from "../auth";
 import type { Database, PatientStatus } from "../../types/database";
 import type { CreatePatientInput, ListPatientsQuery, UpdatePatientInput } from "./patients.types";
@@ -11,12 +12,12 @@ type StatusHistoryEntry = Database["public"]["Tables"]["patient_status_history"]
 async function assertSalesUser(auth: AuthContext, userId: string): Promise<void> {
   const { data, error } = await auth.supabase
     .from("profiles")
-    .select("id, role")
+    .select("id, role, removed_at")
     .eq("id", userId)
     .maybeSingle();
 
   if (error) throw new ApiError(500, error.message);
-  if (!data || data.role !== "SALES_USER") {
+  if (!data || data.role !== "SALES_USER" || data.removed_at) {
     throw new ApiError(400, "assigned_to must reference an existing sales user");
   }
 }
@@ -126,8 +127,9 @@ export async function updatePatientStatus(
   const current = await getPatientById(auth, id);
 
   if (current.status === newStatus) {
-    throw new ApiError(400, `Patient is already in status ${newStatus}`);
+    throw new ApiError(400, "Patient is already in this status");
   }
+  await assertLiveStatus(auth, newStatus);
 
   const { data: patient, error: updateError } = await auth.supabase
     .from("patients")
@@ -223,6 +225,7 @@ export async function bulkAssignByStatus(
   assignedTo: string
 ): Promise<{ updated: number }> {
   await assertSalesUser(auth, assignedTo);
+  await assertLiveStatus(auth, status);
 
   const { data, error } = await auth.supabase
     .from("patients")

@@ -1,37 +1,57 @@
 export type UserRole = "ADMIN" | "SALES_USER";
 
-export type PatientStatus =
-  | "NEW"
-  | "PATIENT_REPLIED"
-  | "REPORT_RECEIVED"
-  | "TREATMENT_PLAN_SENT"
-  | "IN_DISCUSSION"
-  | "ACTIVE"
-  | "CLOSED";
+// A status key, e.g. "IN_DISCUSSION". Statuses are admin-managed rows in
+// public.patient_statuses, so the set of valid keys is only known at runtime.
+export type PatientStatus = string;
 
-export const PATIENT_STATUSES: PatientStatus[] = [
-  "NEW",
-  "PATIENT_REPLIED",
-  "REPORT_RECEIVED",
-  "TREATMENT_PLAN_SENT",
-  "IN_DISCUSSION",
-  "ACTIVE",
-  "CLOSED",
-];
+export const STATUS_COLORS = [
+  "slate",
+  "blue",
+  "sky",
+  "indigo",
+  "violet",
+  "pink",
+  "rose",
+  "amber",
+  "orange",
+  "green",
+  "teal",
+] as const;
 
-export function isPatientStatus(value: unknown): value is PatientStatus {
-  return typeof value === "string" && PATIENT_STATUSES.includes(value as PatientStatus);
-}
+export type StatusColor = (typeof STATUS_COLORS)[number];
 
 export interface Database {
   public: {
     Tables: {
+      patient_statuses: {
+        Row: {
+          key: string;
+          label: string;
+          color: StatusColor;
+          position: number;
+          archived_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          label: string;
+          color?: StatusColor;
+          position: number;
+          archived_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["patient_statuses"]["Insert"]>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
           name: string;
           email: string;
           role: UserRole;
+          removed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -40,6 +60,7 @@ export interface Database {
           name: string;
           email: string;
           role?: UserRole;
+          removed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -169,6 +190,14 @@ export interface Database {
       team_directory: {
         Args: Record<string, never>;
         Returns: { id: string; name: string }[];
+      };
+      remove_patient_status: {
+        Args: { p_key: string; p_move_to: string | null };
+        Returns: number;
+      };
+      reorder_patient_statuses: {
+        Args: { p_keys: string[] };
+        Returns: undefined;
       };
     };
   };

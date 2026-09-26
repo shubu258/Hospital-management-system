@@ -63,6 +63,12 @@ export default async function LoginPage({
             </div>
           )}
 
+          {error === "removed" && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-danger-light px-3 py-2 text-sm text-danger">
+              This account has been removed from the team. Contact your administrator.
+            </div>
+          )}
+
           {error === "google" && (
             <div className="mt-4 rounded-lg border border-red-200 bg-danger-light px-3 py-2 text-sm text-danger">
               Google sign-in didn&apos;t complete. Please try again.

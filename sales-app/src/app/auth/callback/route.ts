@@ -26,6 +26,14 @@ export async function GET(req: NextRequest) {
 
   const failurePage = flow?.mode === "signup" ? "/register" : "/login";
   const fail = () => NextResponse.redirect(new URL(`${failurePage}?error=google`, req.url));
+  const removed = () => NextResponse.redirect(new URL("/login?error=removed", req.url));
+
+  // Supabase can reject a banned (removed) user before issuing a code, and
+  // reports why in error_description.
+  const errorDescription = req.nextUrl.searchParams.get("error_description") ?? "";
+  if (errorDescription.toLowerCase().includes("banned")) {
+    return removed();
+  }
 
   if (!code || !flow) {
     return fail();
@@ -41,6 +49,9 @@ export async function GET(req: NextRequest) {
   if (exchangeRes.status === 404) {
     return NextResponse.redirect(new URL("/register?reason=no-account", req.url));
   }
+  if (exchangeRes.status === 403) {
+    return removed();
+  }
   if (!exchangeJson?.success) {
     return fail();
   }
@@ -53,6 +64,9 @@ export async function GET(req: NextRequest) {
   });
   const meJson = await meRes.json().catch(() => null);
 
+  if (meRes.status === 403) {
+    return removed();
+  }
   if (!meJson?.success) {
     return fail();
   }

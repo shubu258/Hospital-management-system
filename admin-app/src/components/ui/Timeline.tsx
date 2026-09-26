@@ -1,6 +1,9 @@
+"use client";
+
 import { Trash2 } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
-import { STATUS_LABELS, type StatusHistoryEntry } from "@/lib/types";
+import { useStatuses } from "@/lib/statuses";
+import type { StatusHistoryEntry } from "@/lib/types";
 
 export function Timeline({
   entries,
@@ -15,6 +18,8 @@ export function Timeline({
   deletingId?: string | null;
   onDelete?: (entryId: string) => void;
 }) {
+  const { label } = useStatuses();
+
   if (entries.length === 0) {
     return <p className="text-sm text-slate-400">No status changes recorded yet.</p>;
   }
@@ -34,11 +39,11 @@ export function Timeline({
                 Status changed —{" "}
                 {entry.old_status && (
                   <>
-                    <span className="text-slate-400">{STATUS_LABELS[entry.old_status]}</span>{" "}
+                    <span className="text-slate-400">{label(entry.old_status)}</span>{" "}
                     <span className="text-slate-400">→</span>{" "}
                   </>
                 )}
-                <span className="font-medium text-slate-900">{STATUS_LABELS[entry.new_status]}</span>
+                <span className="font-medium text-slate-900">{label(entry.new_status)}</span>
               </p>
               <p className="text-xs text-slate-400">
                 by {entry.changed_by ? (namesById[entry.changed_by] ?? "Unknown") : "Unknown"}

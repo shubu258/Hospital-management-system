@@ -1,11 +1,7 @@
 import { ApiError } from "../../utils/http";
 import { isValidEmail, isValidPhone, isValidUuid } from "../../utils/validation";
-import {
-  CreatePatientInput,
-  isPatientStatus,
-  ListPatientsQuery,
-  UpdatePatientInput,
-} from "./patients.types";
+import { isStatusKey } from "../statuses";
+import { CreatePatientInput, ListPatientsQuery, UpdatePatientInput } from "./patients.types";
 import type { PatientStatus } from "../../types/database";
 
 const OPTIONAL_TEXT_FIELDS = [
@@ -119,7 +115,7 @@ export function validateStatusUpdate(body: unknown): PatientStatus {
     throw new ApiError(400, "Invalid request body");
   }
   const status = (body as Record<string, unknown>).status;
-  if (!isPatientStatus(status)) {
+  if (!isStatusKey(status)) {
     throw new ApiError(400, "Invalid status value");
   }
   return status;
@@ -145,7 +141,7 @@ export function validateBulkAssignInput(body: unknown): {
   }
   const record = body as Record<string, unknown>;
 
-  if (!isPatientStatus(record.status)) {
+  if (!isStatusKey(record.status)) {
     throw new ApiError(400, "A valid status is required");
   }
 
@@ -191,7 +187,7 @@ export function validateListQuery(query: Record<string, unknown>): ListPatientsQ
 
   let status: PatientStatus | undefined;
   if (query.status !== undefined) {
-    if (!isPatientStatus(query.status)) {
+    if (!isStatusKey(query.status)) {
       throw new ApiError(400, "Invalid status filter");
     }
     status = query.status;

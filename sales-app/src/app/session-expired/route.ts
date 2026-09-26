@@ -11,5 +11,6 @@ import { SESSION_COOKIE_NAME } from "@/lib/session";
 export async function GET(req: NextRequest) {
   const store = await cookies();
   store.delete(SESSION_COOKIE_NAME);
-  return NextResponse.redirect(new URL("/login?expired=1", req.url));
+  const target = req.nextUrl.searchParams.get("reason") === "removed" ? "/login?error=removed" : "/login?expired=1";
+  return NextResponse.redirect(new URL(target, req.url));
 }

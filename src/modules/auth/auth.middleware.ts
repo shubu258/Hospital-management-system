@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { createUserClient } from "../../config/supabase";
 import { ApiError, sendError } from "../../utils/http";
-import { getProfile, getUserFromToken } from "./auth.service";
+import { getProfile, getUserFromToken, REMOVED_ACCOUNT_MESSAGE } from "./auth.service";
 import type { UserRole } from "../../types/database";
 
 function extractBearerToken(req: Request): string {
@@ -18,6 +18,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const user = await getUserFromToken(accessToken);
     const supabase = createUserClient(accessToken);
     const profile = await getProfile(supabase, user.id);
+
+    // Checked on every request, so removing a member cuts off sessions they
+    // already have instead of waiting for their access token to expire.
+    if (profile.removed_at) {
+      throw new ApiError(403, REMOVED_ACCOUNT_MESSAGE);
+    }
 
     req.auth = {
       userId: user.id,

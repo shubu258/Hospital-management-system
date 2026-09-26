@@ -5,6 +5,9 @@ import { ApiError } from "../../utils/http";
 import type { Database } from "../../types/database";
 import type { Profile } from "./auth.types";
 
+export const REMOVED_ACCOUNT_MESSAGE =
+  "This account has been removed from the team. Contact your administrator.";
+
 export async function login(email: string, password: string) {
   const { data, error } = await supabaseAnon.auth.signInWithPassword({
     email,
@@ -12,8 +15,12 @@ export async function login(email: string, password: string) {
   });
 
   if (error || !data.session) {
-    if (!(await accountExists(email))) {
+    const account = await findAccount(email);
+    if (!account) {
       throw new ApiError(404, "No account found for this email. Please create one.");
+    }
+    if (account.removed) {
+      throw new ApiError(403, REMOVED_ACCOUNT_MESSAGE);
     }
     throw new ApiError(401, "Invalid email or password");
   }
@@ -25,20 +32,26 @@ export async function login(email: string, password: string) {
 // profile lookup is how we tell "wrong password" apart from "no account".
 // This deliberately reveals whether an email is registered, so the UI can
 // send unknown emails to the Create Account page.
-export async function accountExists(email: string): Promise<boolean> {
+export async function findAccount(email: string): Promise<{ removed: boolean } | null> {
   const { data, error } = await supabaseAdmin
     .from("profiles")
-    .select("id")
+    .select("id, removed_at")
     .eq("email", email.trim().toLowerCase())
     .maybeSingle();
 
   if (error) {
     throw new ApiError(500, error.message);
   }
-  return data !== null;
+  return data ? { removed: data.removed_at !== null } : null;
 }
 
 export async function registerUser(name: string, email: string, password: string) {
+  // A removed member's auth account is kept (and banned), so createUser
+  // would fail anyway; this just explains why.
+  if ((await findAccount(email))?.removed) {
+    throw new ApiError(403, REMOVED_ACCOUNT_MESSAGE);
+  }
+
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
@@ -115,6 +128,10 @@ export async function exchangeGoogleCode(
   const { data, error } = await client.auth.exchangeCodeForSession(code);
 
   if (error || !data.session) {
+    // Removed members are banned in Supabase Auth, which rejects the grant.
+    if (error?.message.toLowerCase().includes("banned")) {
+      throw new ApiError(403, REMOVED_ACCOUNT_MESSAGE);
+    }
     throw new ApiError(401, error?.message ?? "Google sign-in failed");
   }
 
@@ -143,8 +160,12 @@ function isFirstSignIn(user: { created_at: string; last_sign_in_at?: string }) {
 // ---------------------------------------------------------------------------
 
 export async function sendPasswordResetEmail(email: string, redirectTo: string) {
-  if (!(await accountExists(email))) {
+  const account = await findAccount(email);
+  if (!account) {
     throw new ApiError(404, "No account found for this email. Please create one.");
+  }
+  if (account.removed) {
+    throw new ApiError(403, REMOVED_ACCOUNT_MESSAGE);
   }
 
   const { error } = await supabaseAnon.auth.resetPasswordForEmail(email, { redirectTo });

@@ -8,7 +8,15 @@ import { StatusPipeline } from "@/components/ui/StatusPipeline";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { formatRelativeTime } from "@/lib/format";
+import { getStatuses, liveStatus } from "@/lib/statuses.server";
 import type { AdminDashboard, PatientListResult, Profile } from "@/lib/types";
+
+const HEADLINE_STATUSES: { key: string; hint?: string; hintColor?: "blue" | "green" }[] = [
+  { key: "NEW", hint: "Needs first contact", hintColor: "blue" },
+  { key: "IN_DISCUSSION" },
+  { key: "ACTIVE", hint: "In active care", hintColor: "green" },
+  { key: "CLOSED" },
+];
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -25,6 +33,11 @@ export default async function DashboardPage() {
   ]);
 
   const firstName = profile.name.split(" ")[0];
+
+  const statuses = await getStatuses();
+  const activeStatus = liveStatus(statuses, "ACTIVE");
+  const closedStatus = liveStatus(statuses, "CLOSED");
+  const teamColumnCount = 2 + (activeStatus ? 1 : 0) + (closedStatus ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -47,10 +60,18 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard label="Total Patients" value={dashboard.totalPatients} hint="Across all statuses" />
-        <StatCard label="New" value={dashboard.statusCounts.NEW} hint="Needs first contact" hintColor="blue" />
-        <StatCard label="In Discussion" value={dashboard.statusCounts.IN_DISCUSSION} />
-        <StatCard label="Active" value={dashboard.statusCounts.ACTIVE} hint="In active care" hintColor="green" />
-        <StatCard label="Closed" value={dashboard.statusCounts.CLOSED} />
+        {HEADLINE_STATUSES.map(({ key, hint, hintColor }) => {
+          const status = liveStatus(statuses, key);
+          return status ? (
+            <StatCard
+              key={key}
+              label={status.label}
+              value={dashboard.statusCounts[key] ?? 0}
+              hint={hint}
+              hintColor={hintColor}
+            />
+          ) : null;
+        })}
       </div>
 
       <StatusPipeline counts={dashboard.statusCounts} />
@@ -125,8 +146,8 @@ export default async function DashboardPage() {
               <tr className="text-left text-xs text-slate-400 uppercase">
                 <th className="px-6 py-3 font-medium">Sales Person</th>
                 <th className="px-2 py-3 text-center font-medium">Patients</th>
-                <th className="px-2 py-3 text-center font-medium">Active</th>
-                <th className="px-2 py-3 text-center font-medium">Closed</th>
+                {activeStatus && <th className="px-2 py-3 text-center font-medium">{activeStatus.label}</th>}
+                {closedStatus && <th className="px-2 py-3 text-center font-medium">{closedStatus.label}</th>}
               </tr>
             </thead>
             <tbody>
@@ -142,15 +163,19 @@ export default async function DashboardPage() {
                       </div>
                     </td>
                     <td className="px-2 py-3 text-center text-slate-600">{user.count}</td>
-                    <td className="px-2 py-3 text-center font-medium text-green-600">
-                      {user.statusCounts.ACTIVE}
-                    </td>
-                    <td className="px-2 py-3 text-center text-slate-500">{user.statusCounts.CLOSED}</td>
+                    {activeStatus && (
+                      <td className="px-2 py-3 text-center font-medium text-green-600">
+                        {user.statusCounts.ACTIVE ?? 0}
+                      </td>
+                    )}
+                    {closedStatus && (
+                      <td className="px-2 py-3 text-center text-slate-500">{user.statusCounts.CLOSED ?? 0}</td>
+                    )}
                   </tr>
                 ))}
               {dashboard.byUser.filter((u) => u.userId !== null).length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-400">
+                  <td colSpan={teamColumnCount} className="px-6 py-8 text-center text-slate-400">
                     No sales activity yet.
                   </td>
                 </tr>

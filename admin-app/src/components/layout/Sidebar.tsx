@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Users, UserCog, Settings, Link2 } from "lucide-react";
+import { LayoutGrid, Users, UserCog, Settings, Link2, ListOrdered } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/Avatar";
 import type { Profile } from "@/lib/types";
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/patients", label: "Patients", icon: Users },
   { href: "/team", label: "Team", icon: UserCog, adminOnly: true },
+  { href: "/statuses", label: "Statuses", icon: ListOrdered, adminOnly: true },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

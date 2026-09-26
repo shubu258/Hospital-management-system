@@ -4,6 +4,7 @@ import { authRouter } from "./modules/auth";
 import { patientsRouter } from "./modules/patients";
 import { usersRouter } from "./modules/users";
 import { dashboardRouter } from "./modules/dashboard";
+import { statusesRouter } from "./modules/statuses";
 import { ApiError, sendError } from "./utils/http";
 
 export function createApp(): Express {
@@ -20,6 +21,7 @@ export function createApp(): Express {
   app.use("/api/patients", patientsRouter);
   app.use("/api/users", usersRouter);
   app.use("/api/dashboard", dashboardRouter);
+  app.use("/api/statuses", statusesRouter);
 
   app.use((_req, res) => {
     sendError(res, new ApiError(404, "Not found"));

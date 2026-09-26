@@ -32,6 +32,8 @@ We built a CRM around one **case record per patient** that moves through a fixed
 NEW → PATIENT_REPLIED → REPORT_RECEIVED → TREATMENT_PLAN_SENT → IN_DISCUSSION → ACTIVE → CLOSED
 ```
 
+This is the default pipeline. Admins can change it from the Admin App's **Statuses** page.
+
 **Sales App** (for the sales team)
 - Add patients: name, country, contact details, medical condition and description.
 - Move patients through the pipeline. Every change is logged in a status history timeline showing who changed it and when.
@@ -44,7 +46,8 @@ NEW → PATIENT_REPLIED → REPORT_RECEIVED → TREATMENT_PLAN_SENT → IN_DISCU
 - A full dashboard and analytics across the whole pipeline.
 - Assign or reassign patients, including bulk assignment by status.
 - Delete patients or correct mistaken status-history entries. Only admins can do this.
-- Manage the team and see who is on it.
+- Manage the team: remove a member, which blocks their login and stops their email from being used to sign up again, or restore them later.
+- Manage the pipeline: add, rename, recolor, reorder and remove patient statuses. Changes show up everywhere in both apps.
 
 ### Key technical decisions
 
@@ -125,7 +128,8 @@ All routes are under `/api` and, except the auth routes, need `Authorization: Be
 | Patients | `GET/POST /patients`, `GET/PATCH/DELETE /patients/:id`, `PATCH /patients/:id/status`, `GET /patients/:id/status-history`, `PATCH /patients/:id/assign`, `PATCH /patients/assign-by-status` |
 | Documents | `GET/POST /patients/:id/documents`, `DELETE /patients/:id/documents/:documentId` |
 | Dashboard | `GET /dashboard`, `/dashboard/analytics`, `/dashboard/my` |
-| Users | `GET /users`, `/users/directory` |
+| Users | `GET /users` (`?include=removed`), `/users/directory`, `DELETE /users/:id` (remove member), `POST /users/:id/restore` |
+| Statuses | `GET /statuses`, `POST /statuses`, `PATCH /statuses/:key`, `PUT /statuses/order`, `DELETE /statuses/:key` (admin-only except GET) |
 | Health | `GET /health` |
 
 ---

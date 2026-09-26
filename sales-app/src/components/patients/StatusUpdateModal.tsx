@@ -6,7 +6,8 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
-import { PATIENT_STATUSES, STATUS_LABELS, type PatientStatus } from "@/lib/types";
+import { useStatuses } from "@/lib/statuses";
+import type { PatientStatus } from "@/lib/types";
 
 export function StatusUpdateModal({
   patientId,
@@ -22,7 +23,8 @@ export function StatusUpdateModal({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const currentIndex = PATIENT_STATUSES.indexOf(currentStatus);
+  const { active } = useStatuses();
+  const currentIndex = active.findIndex((s) => s.key === currentStatus);
 
   async function handleSubmit() {
     if (selected === currentStatus) {
@@ -76,7 +78,7 @@ export function StatusUpdateModal({
           </div>
 
           <div className="space-y-2">
-            {PATIENT_STATUSES.map((status, i) => {
+            {active.map(({ key: status, label }, i) => {
               const isSelected = selected === status;
               const isPast = i < currentIndex;
               return (
@@ -103,7 +105,7 @@ export function StatusUpdateModal({
                   >
                     {(isSelected || isPast) && "✓"}
                   </span>
-                  {STATUS_LABELS[status]}
+                  {label}
                 </button>
               );
             })}

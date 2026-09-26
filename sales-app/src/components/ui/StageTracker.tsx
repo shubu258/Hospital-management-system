@@ -1,12 +1,16 @@
+"use client";
+
 import { cn } from "@/lib/cn";
-import { PATIENT_STATUSES, STATUS_LABELS, type PatientStatus } from "@/lib/types";
+import { useStatuses } from "@/lib/statuses";
+import type { PatientStatus } from "@/lib/types";
 
 export function StageTracker({ current }: { current: PatientStatus }) {
-  const currentIndex = PATIENT_STATUSES.indexOf(current);
+  const { active } = useStatuses();
+  const currentIndex = active.findIndex((s) => s.key === current);
 
   return (
-    <div className="flex items-start">
-      {PATIENT_STATUSES.map((status, i) => {
+    <div className="flex items-start overflow-x-auto">
+      {active.map(({ key: status, label }, i) => {
         const isDone = i < currentIndex;
         const isCurrent = i === currentIndex;
         return (
@@ -37,10 +41,10 @@ export function StageTracker({ current }: { current: PatientStatus }) {
                   isCurrent ? "font-semibold text-slate-900" : "text-slate-400"
                 )}
               >
-                {STATUS_LABELS[status]}
+                {label}
               </span>
             </div>
-            {i < PATIENT_STATUSES.length - 1 && (
+            {i < active.length - 1 && (
               <div
                 className={cn(
                   "mx-2 mb-5 h-0.5 flex-1",

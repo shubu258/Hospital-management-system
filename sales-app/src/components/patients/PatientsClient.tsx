@@ -13,14 +13,8 @@ import { Pagination } from "@/components/ui/Pagination";
 import { PatientFormDrawer } from "./PatientFormDrawer";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime } from "@/lib/format";
-import {
-  PATIENT_STATUSES,
-  STATUS_LABELS,
-  type DirectoryEntry,
-  type Patient,
-  type PatientListResult,
-  type PatientStatus,
-} from "@/lib/types";
+import { useStatuses } from "@/lib/statuses";
+import type { DirectoryEntry, Patient, PatientListResult } from "@/lib/types";
 
 interface SalesUserOption {
   id: string;
@@ -57,6 +51,7 @@ export function PatientsClient({
   defaultOpenNew: boolean;
 }) {
   const router = useRouter();
+  const statuses = useStatuses();
   const [search, setSearch] = useState(searchValue);
   const [addOpen, setAddOpen] = useState(defaultOpenNew);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
@@ -71,7 +66,7 @@ export function PatientsClient({
 
   async function handleBulkAssign() {
     if (!bulkAssignTo || !statusValue) return;
-    const label = STATUS_LABELS[statusValue as PatientStatus];
+    const label = statuses.label(statusValue);
     const personName = salesUsers.find((u) => u.id === bulkAssignTo)?.name ?? "this person";
     if (
       !window.confirm(
@@ -179,9 +174,9 @@ export function PatientsClient({
             onChange={(e) => updateParams({ status: e.target.value || undefined })}
           >
             <option value="">All statuses</option>
-            {PATIENT_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
+            {statuses.active.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
               </option>
             ))}
           </SelectInput>
@@ -204,7 +199,7 @@ export function PatientsClient({
         {allowAssignment && statusValue && (
           <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-primary-light/30 px-6 py-3 text-sm">
             <span className="text-slate-700">
-              Assign every <span className="font-medium">{STATUS_LABELS[statusValue as PatientStatus]}</span> lead
+              Assign every <span className="font-medium">{statuses.label(statusValue)}</span> lead
               to
             </span>
             <SelectInput
