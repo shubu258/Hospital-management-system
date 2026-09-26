@@ -4,11 +4,12 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Field";
+import { GoogleButton, OrDivider } from "@/components/login/GoogleButton";
 
-export function RegisterForm() {
+export function RegisterForm({ initialEmail = "" }: { initialEmail?: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +80,10 @@ export function RegisterForm() {
       <Button type="submit" disabled={loading} className="w-full">
         {loading ? "Creating account…" : "Create account"}
       </Button>
+
+      <OrDivider />
+
+      <GoogleButton mode="signup" label="Sign up with Google" />
     </form>
   );
 }

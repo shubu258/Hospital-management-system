@@ -2,10 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Field";
 
 export function ForgotPasswordForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,12 @@ export function ForgotPasswordForm() {
       body: JSON.stringify({ email }),
     });
     const json = await res.json();
+
+    if (res.status === 404) {
+      router.push(`/register?reason=no-account&email=${encodeURIComponent(email)}`);
+      return;
+    }
+
     setLoading(false);
 
     if (!json.success) {
@@ -36,8 +44,8 @@ export function ForgotPasswordForm() {
     return (
       <div className="space-y-5">
         <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-primary-dark">
-          If an account exists for <span className="font-medium">{email}</span>, we&apos;ve sent a
-          link to reset your password. Check your inbox (and spam folder).
+          We&apos;ve sent a link to reset your password to{" "}
+          <span className="font-medium">{email}</span>. Check your inbox (and spam folder).
         </div>
         <Link href="/login" className="block text-center text-sm font-medium text-primary hover:underline">
           Back to login

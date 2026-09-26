@@ -2,7 +2,13 @@ import Link from "next/link";
 import { Link2 } from "lucide-react";
 import { RegisterForm } from "@/components/login/RegisterForm";
 
-export default function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reason?: string; email?: string; error?: string }>;
+}) {
+  const { reason, email, error } = await searchParams;
+
   return (
     <div className="flex min-h-screen">
       <div className="relative hidden w-[420px] shrink-0 flex-col justify-between overflow-hidden bg-primary-dark px-10 py-10 text-white lg:flex">
@@ -51,8 +57,21 @@ export default function RegisterPage() {
           <h2 className="text-2xl font-semibold text-slate-900">Create your account</h2>
           <p className="mt-1 text-sm text-slate-500">Join the Karishava sales team.</p>
 
+          {reason === "no-account" && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-warning-light px-3 py-2 text-sm text-warning">
+              We couldn&apos;t find an account for {email ? <strong>{email}</strong> : "that email"}.
+              Create one below to get started.
+            </div>
+          )}
+
+          {error === "google" && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-danger-light px-3 py-2 text-sm text-danger">
+              Google sign-up didn&apos;t complete. Please try again.
+            </div>
+          )}
+
           <div className="mt-6">
-            <RegisterForm />
+            <RegisterForm initialEmail={email} />
           </div>
 
           <p className="mt-6 text-center text-sm text-slate-500">

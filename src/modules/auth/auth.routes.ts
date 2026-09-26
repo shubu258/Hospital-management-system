@@ -74,14 +74,18 @@ authRouter.post("/google/start", async (req, res) => {
 
 // Google sign-in, step 2: trades the callback's code for a session. New
 // Google users get a profile from the same Postgres trigger as registration.
+// With mode "login", an email with no existing account gets a 404 instead.
 authRouter.post("/google/exchange", async (req, res) => {
   try {
-    const { code, verifier } = req.body ?? {};
+    const { code, verifier, mode = "login" } = req.body ?? {};
     if (typeof code !== "string" || typeof verifier !== "string") {
       throw new ApiError(400, "code and verifier are required");
     }
+    if (mode !== "login" && mode !== "signup") {
+      throw new ApiError(400, 'mode must be "login" or "signup"');
+    }
 
-    const session = await exchangeGoogleCode(code, verifier);
+    const session = await exchangeGoogleCode(code, verifier, mode);
     sendSuccess(res, {
       accessToken: session.access_token,
       refreshToken: session.refresh_token,
@@ -92,8 +96,8 @@ authRouter.post("/google/exchange", async (req, res) => {
   }
 });
 
-// Always reports success for a well-formed email, whether or not an account
-// exists, so this can't be used to enumerate users.
+// Returns 404 for an email with no account, so the UI can send the user to
+// Create Account instead.
 authRouter.post("/forgot-password", async (req, res) => {
   try {
     const { email, redirectTo } = req.body ?? {};

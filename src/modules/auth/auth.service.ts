@@ -12,10 +12,30 @@ export async function login(email: string, password: string) {
   });
 
   if (error || !data.session) {
+    if (!(await accountExists(email))) {
+      throw new ApiError(404, "No account found for this email. Please create one.");
+    }
     throw new ApiError(401, "Invalid email or password");
   }
 
   return data.session;
+}
+
+// Every auth user gets a profile from the handle_new_user trigger, so a
+// profile lookup is how we tell "wrong password" apart from "no account".
+// This deliberately reveals whether an email is registered, so the UI can
+// send unknown emails to the Create Account page.
+export async function accountExists(email: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("email", email.trim().toLowerCase())
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(500, error.message);
+  }
+  return data !== null;
 }
 
 export async function registerUser(name: string, email: string, password: string) {
@@ -83,7 +103,14 @@ export async function startGoogleOAuth(redirectTo: string) {
   return { url: data.url, verifier };
 }
 
-export async function exchangeGoogleCode(code: string, verifier: string) {
+// `mode` is where the user started: "signup" (Create Account page) may create
+// a new account; "login" may not. Supabase creates the account either way, so
+// a login that turns out to be brand new is undone and reported as 404.
+export async function exchangeGoogleCode(
+  code: string,
+  verifier: string,
+  mode: "login" | "signup"
+) {
   const { client } = createOAuthClient({ [OAUTH_VERIFIER_KEY]: verifier });
   const { data, error } = await client.auth.exchangeCodeForSession(code);
 
@@ -91,7 +118,20 @@ export async function exchangeGoogleCode(code: string, verifier: string) {
     throw new ApiError(401, error?.message ?? "Google sign-in failed");
   }
 
+  if (mode === "login" && isFirstSignIn(data.session.user)) {
+    await supabaseAdmin.auth.admin.deleteUser(data.session.user.id);
+    throw new ApiError(404, "No account found for this email. Please create one.");
+  }
+
   return data.session;
+}
+
+// On an account's very first sign-in, last_sign_in_at is stamped within
+// moments of created_at. Any later sign-in is well after it.
+function isFirstSignIn(user: { created_at: string; last_sign_in_at?: string }) {
+  if (!user.last_sign_in_at) return true;
+  const gap = Date.parse(user.last_sign_in_at) - Date.parse(user.created_at);
+  return gap < 10_000;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,10 +143,11 @@ export async function exchangeGoogleCode(code: string, verifier: string) {
 // ---------------------------------------------------------------------------
 
 export async function sendPasswordResetEmail(email: string, redirectTo: string) {
+  if (!(await accountExists(email))) {
+    throw new ApiError(404, "No account found for this email. Please create one.");
+  }
+
   const { error } = await supabaseAnon.auth.resetPasswordForEmail(email, { redirectTo });
-  // Deliberately not surfaced for unknown emails, so the endpoint can't be
-  // used to discover which addresses have accounts. Rate limits are real
-  // errors the user should see, though.
   if (error && error.status === 429) {
     throw new ApiError(429, "Too many reset requests. Please try again later.");
   }
