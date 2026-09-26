@@ -5,9 +5,9 @@ import { LoginForm } from "@/components/login/LoginForm";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ expired?: string }>;
+  searchParams: Promise<{ expired?: string; error?: string }>;
 }) {
-  const { expired } = await searchParams;
+  const { expired, error } = await searchParams;
 
   return (
     <div className="flex min-h-screen">
@@ -60,6 +60,12 @@ export default async function LoginPage({
           {expired && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-warning-light px-3 py-2 text-sm text-warning">
               Your session expired. Please log in again.
+            </div>
+          )}
+
+          {error === "google" && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-danger-light px-3 py-2 text-sm text-danger">
+              Google sign-in didn&apos;t complete. Please try again.
             </div>
           )}
 

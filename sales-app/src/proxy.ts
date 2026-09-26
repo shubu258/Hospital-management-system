@@ -6,8 +6,13 @@ export function proxy(request: NextRequest) {
   const isPublicPath =
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname === "/auth/callback" ||
     pathname.startsWith("/api/session") ||
-    pathname.startsWith("/api/register");
+    pathname.startsWith("/api/register") ||
+    pathname.startsWith("/api/auth/google") ||
+    pathname.startsWith("/api/password");
   const hasSession = request.cookies.has(SESSION_COOKIE_NAME);
 
   if (!hasSession && !isPublicPath) {
