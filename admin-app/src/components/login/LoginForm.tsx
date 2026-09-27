@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Field";
+import { GoogleButton, OrDivider } from "@/components/login/GoogleButton";
 
 export function LoginForm() {
   const router = useRouter();
@@ -83,6 +84,10 @@ export function LoginForm() {
       <Button type="submit" disabled={loading} className="w-full">
         {loading ? "Logging in…" : "Log in"}
       </Button>
+
+      <OrDivider />
+
+      <GoogleButton label="Continue with Google" />
     </form>
   );
 }

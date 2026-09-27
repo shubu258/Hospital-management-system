@@ -27,7 +27,10 @@ export function Pagination({
     return `${basePath}?${search.toString()}`;
   }
 
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 7);
+  // Up to 7 page links, kept around the current page so it's always visible.
+  const windowSize = Math.min(7, totalPages);
+  const firstPage = Math.min(Math.max(1, page - 3), totalPages - windowSize + 1);
+  const pages = Array.from({ length: windowSize }, (_, i) => firstPage + i);
 
   return (
     <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
